@@ -1,0 +1,146 @@
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+#include <algorithm>
+#include <string>
+#include <vector>
+#include <map>
+#include <set>
+#include <cctype>
+#include <numeric>
+#include <queue>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#define FOR(i,s,e) for(int i=(s);i<(int)(e);i++)
+#define FOE(i,s,e) for(int i=(s);i<=(int)(e);i++)
+#define ALL(x) (x).begin(), (x).end()
+#define CLR(s) memset(s,0,sizeof(s))
+#define PB push_back
+#define EARLY if(found)return;
+using namespace std;
+typedef long long LL;
+typedef pair<int,int> pii;
+typedef map<int,int> mii;
+typedef vector<int> vi;
+#define x first
+#define y second
+
+#define L(p) ((p)*2+1)
+#define R(p) ((p)*2+2)
+
+const int N = 203600*4;
+const int INF = 2036000;
+
+int mx = 0;
+int node[N];    // store minimum
+bool up[N];             // updated, not yet spread
+int  ex[N];             // extra to add
+
+void Init() {
+        CLR(node);
+        CLR(ex);
+        CLR(up);
+}
+
+void Upd(int p, int a) {
+        up[p]    = 1;
+        ex[p]   += a;
+        node[p] += a;
+}
+
+void Push(int p) {
+//      if (up[p]) {
+                // Propagate the flipping effects to children...
+//              printf("Push %d to child...\n", ex[p], p);
+                Upd(L(p), ex[p]);
+                Upd(R(p), ex[p]);
+                up[p] = ex[p] = 0;      // reset. . .
+//      }
+        return;
+}
+
+// range add
+void Upd(int p, int s, int e, int u, int v, int a) {    // [s, e)
+mx = max(mx, p);
+
+        u = max(u, s);
+        v = min(v, e);
+        if (u >= v) return;
+        if (u == s && v == e) {
+                node[p] += a;
+                ex[p]   += a;
+                up[p]    = 1;
+        } else {
+                Push(p);
+
+                int md = s+e>>1;
+                Upd(L(p),  s, md, u, v, a);
+                Upd(R(p), md,  e, u, v, a);
+                node[p] = max(node[L(p)], node[R(p)]);
+        }
+//      printf("On Upd [%d %d) + %d: [%d %d) = %d\n", u, v, a, s, e, node[p]);
+}
+
+// range max
+int Que(int p, int s, int e, int u, int v) {
+//      printf("At [%d, %d): ", s, e);
+        Push(p);
+
+//      if (u>=e || v<=s) return INF;
+        u = max(u, s);
+        v = min(v, e);
+        if (u >= v) return -INF;
+
+        int ret;
+
+        if (u==s && v==e) {
+                ret = node[p];
+        } else {
+                int md = s+e>>1;
+                int t1 = Que(L(p), s, md, u, v);
+                int t2 = Que(R(p), md, e, u, v);
+                ret = max(t1, t2);
+        }
+//      printf("Ret[%d, %d) = %d\n", s, e, ret);
+        return ret;
+}
+
+int u;
+
+void Trace() {
+        FOR(i,0,u) {
+                printf("[%d] = %d\n", i, Que(0, 0, u, i, u));
+        }
+}
+
+int main() {
+        int n = 103600;
+
+        //n = 16;
+        u = 1;
+        while (u<n) u<<=1;
+
+        Init();
+
+        FOR(i,0,u) {
+//              printf("[%d %d)\n", i, u);
+                Upd(0, 0, u, i, u, -1);
+        }
+        //Trace();
+
+        int mx = 0;
+
+        int T; scanf("%d", &T);
+        while (T--) {
+                int d, m;
+                scanf("%d%d", &d, &m);
+                mx = max(mx, d);
+                Upd(0, 0, u, d-1, u, m);
+                int ans = Que(0, 0, u, 0, mx);
+                if (ans < 0) ans = 0;
+                printf("%d\n", ans);
+        }
+
+        return 0;
+}
