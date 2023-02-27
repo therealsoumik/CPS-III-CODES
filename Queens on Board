@@ -1,0 +1,133 @@
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <iostream>
+#include <unordered_map>
+#include <cassert>
+
+using namespace std;
+
+struct Solution2
+{
+    typedef basic_string<unsigned char> __Board;
+    typedef __Board::value_type         __Row;
+    long long solve(const vector<string> & B){
+        if (B.empty() || B[0].empty())
+            return 0;
+        
+        for (size_t i = 0; i < B.size(); ++i){
+            __Row row = 0;
+            for (size_t j = 0; j < B[i].size(); ++j){
+                if ('.' == B[i][j])
+                    row |= (1 << j);
+            }
+            row = ~row;
+            board.push_back(row);
+           
+            __Board p;
+            genPlacements(row, p, B[i].size());
+            placements.push_back(p);
+        }
+        bmask = (1 << B[0].size()) - 1;
+        return help(0, 0, 0, 0);
+    }
+private:
+    static void genPlacements(__Row block, __Board & ret, int M){
+        for (int i = 0; i < M; ++i){
+            
+            __Row p1 = 1 << i;
+            if (0 != (p1 & block))
+                continue;
+            ret.push_back(p1);
+            
+            for (int j = i + 2; j < M; ++j){
+                __Row p2 = p1 | (1 << j);
+                if (0 != (p2 & block))
+                    continue;
+                __Row m2 = (1 << j) - (1 << (i + 1));
+                if (0 == (m2 & block))
+                    continue;   
+                ret.push_back(p2);
+                
+                for (int k = j + 2; k < M; ++k){
+                    __Row p3 = p2 | (1 << k);
+                    if (0 != (p3 & block))
+                        continue;
+                    __Row m3 = (1 << k) - (1 << (j + 1));
+                    if (0 == (m3 & block))
+                        continue;   //there is not enough blocks between 3 Qs
+                    ret.push_back(p3);
+                }
+            }
+        }
+    }
+    __Row calcMask(__Row mask, __Row blocks){
+        __Row b = mask & blocks;    
+        mask &= ~b;
+        return (mask & bmask);  
+    }
+    static int hash(size_t row, __Row lmask, __Row dmask, __Row rmask){
+        int r = row;
+        r <<= 8;
+        r += lmask;
+        r <<= 8;
+        r += dmask;
+        r <<= 8;
+        r += rmask;
+        return r;
+    }
+    long long help(size_t row, __Row lmask, __Row dmask, __Row rmask){
+        if (row >= board.size())
+            return 0;
+        const int h = hash(row, lmask, dmask, rmask);
+        unordered_map<int, long long>::const_iterator wh = save.find(h);
+        if (wh != save.end())
+            return wh->second;
+        const __Row blocks = board[row];
+        const __Row mask = lmask | dmask | rmask | blocks;    
+        long long ret = 0;
+       
+        lmask = calcMask(lmask, blocks);
+        dmask = calcMask(dmask, blocks);
+        rmask = calcMask(rmask, blocks);
+        if (__Row(-1) != mask){
+            
+            const __Board & ps = placements[row];
+            for (size_t i = 0; i < ps.size(); ++i){
+                const __Row p = ps[i];
+                if (0 != (mask & p))
+                    continue;   
+                ++ret;
+                
+                ret += help(row + 1, (lmask | p) << 1, dmask | p, (rmask | p) >> 1);
+            }
+        }
+        ret += help(row + 1, lmask << 1, dmask, rmask >> 1);
+        return (save[h] = ret % 1000000007);
+    }
+    __Board board;  
+    vector<__Board> placements;
+    unordered_map<int, long long> save;
+    __Row bmask;    
+};
+
+typedef Solution2 Solution;
+
+int main()
+{
+   
+    int t;
+    cin >> t;
+    while (t--){
+        int n, m;
+        cin >> n >> m;
+        vector<string> b;
+        for (int i = 0; i < n; ++i){
+            string line;
+            cin >> line;
+            b.push_back(line);
+        }
+        cout << Solution().solve(b) << endl;
+    }
+    return 0;
+}
